@@ -183,6 +183,23 @@ def _collection_payload(collection_id="collection1", name="Saved"):
     }
 
 
+def _story_payload(pk="shared-story"):
+    return {
+        "pk": pk,
+        "id": f"{pk}_42",
+        "code": "abc",
+        "taken_at": "2026-01-01T00:00:00+00:00",
+        "media_type": 1,
+        "user": _user_short(42),
+        "sponsor_tags": [],
+        "mentions": [],
+        "links": [],
+        "hashtags": [],
+        "locations": [],
+        "stickers": [],
+    }
+
+
 class FakeExpandedClient:
     def __init__(self):
         self.calls = []
@@ -356,7 +373,7 @@ class FakeExpandedClient:
         self.calls.append(("media_note_delete", note_id, extra_data or {}))
         return True
 
-    async def direct_threads(self, amount=20, selected_filter="", box="", thread_message_limit=None):
+    async def direct_threads(self, amount=20, selected_filter=None, box=None, thread_message_limit=None):
         self.calls.append(("direct_threads", amount, selected_filter, box, thread_message_limit))
         return [_direct_thread_payload()]
 
@@ -380,7 +397,7 @@ class FakeExpandedClient:
         self.calls.append(("direct_set_e2ee_eligibility", e2ee_eligibility))
         return True
 
-    async def direct_threads_chunk(self, selected_filter="", box="", thread_message_limit=None, cursor=None):
+    async def direct_threads_chunk(self, selected_filter=None, box=None, thread_message_limit=None, cursor=None):
         self.calls.append(("direct_threads_chunk", selected_filter, box, thread_message_limit, cursor))
         return [_direct_thread_payload()], "next-direct"
 
@@ -680,8 +697,8 @@ class FakeExpandedClient:
         self.calls.append(("collection_medias", collection_pk, amount, last_media_pk))
         return [_media_payload(35)]
 
-    async def collection_medias_by_name(self, name):
-        self.calls.append(("collection_medias_by_name", name))
+    async def collection_medias_by_name(self, name, amount=21, last_media_pk=0):
+        self.calls.append(("collection_medias_by_name", name, amount, last_media_pk))
         return [_media_payload(36)]
 
     async def explore_page(self):
@@ -925,6 +942,248 @@ class FakeExpandedClient:
     async def challenge_resolve(self, last_json):
         self.calls.append(("challenge_resolve", last_json))
         return True
+
+    async def account_convert_to_business(self, category_id="2347428775505624", should_show_category=True, should_show_public_contacts=False):
+        self.calls.append(("account_convert_to_business", category_id, should_show_category, should_show_public_contacts))
+        return _account_payload()
+
+    async def account_convert_to_creator(self, category_id="2347428775505624", should_show_category=True, should_show_public_contacts=False):
+        self.calls.append(("account_convert_to_creator", category_id, should_show_category, should_show_public_contacts))
+        return _account_payload()
+
+    async def account_convert_to_professional(
+        self,
+        to_account_type=3,
+        category_id="2347428775505624",
+        should_show_category=True,
+        should_show_public_contacts=False,
+        entry_point="setting",
+        creator_destination_migration=False,
+        extra_data=None,
+    ):
+        self.calls.append(
+            (
+                "account_convert_to_professional",
+                to_account_type,
+                category_id,
+                should_show_category,
+                should_show_public_contacts,
+                entry_point,
+                creator_destination_migration,
+                extra_data,
+            )
+        )
+        return _account_payload()
+
+    async def account_set_ai_info(self, enabled):
+        self.calls.append(("account_set_ai_info", enabled))
+        return _account_payload()
+
+    async def confirm_phone_number(self, phone_number, code, has_sms_consent=False):
+        self.calls.append(("confirm_phone_number", phone_number, code, has_sms_consent))
+        return {"status": "ok", "phone_number": phone_number}
+
+    async def address_book_link(self, contacts, include=("extra_display_name", "thumbnails")):
+        self.calls.append(("address_book_link", contacts, include))
+        return {"status": "ok", "contacts": contacts}
+
+    async def address_book_unlink(self):
+        self.calls.append(("address_book_unlink",))
+        return {"status": "ok"}
+
+    async def user_report(self, user_id, reason="spam"):
+        self.calls.append(("user_report", user_id, reason))
+        return True
+
+    async def user_suggested_profiles(self, user_id, expand_suggestion=False):
+        self.calls.append(("user_suggested_profiles", user_id, expand_suggestion))
+        return {"users": [_user_short(1)], "expand_suggestion": expand_suggestion}
+
+    async def user_followers_private_gql(self, user_id, amount=0, rank_token=None, order=None, priority="u=3, i"):
+        self.calls.append(("user_followers_private_gql", user_id, amount, rank_token, order, priority))
+        return [_user_short(1)]
+
+    async def user_following_private_gql(self, user_id, amount=0, rank_token=None, order=None, priority="u=3, i"):
+        self.calls.append(("user_following_private_gql", user_id, amount, rank_token, order, priority))
+        return [_user_short(1)]
+
+    async def iter_user_followers_v1(self, user_id, amount=0, page_size=200, order=None):
+        self.calls.append(("iter_user_followers_v1", user_id, amount, page_size, order))
+        for user in [_user_short(1), _user_short(2)]:
+            yield user
+
+    async def iter_user_following_v1(self, user_id, amount=0, page_size=200):
+        self.calls.append(("iter_user_following_v1", user_id, amount, page_size))
+        for user in [_user_short(1), _user_short(2)]:
+            yield user
+
+    async def hashtag_following(self, amount=0):
+        self.calls.append(("hashtag_following", amount))
+        return [{"id": "tag1", "name": "followed", "media_count": 1}]
+
+    async def hashtag_medias_paginated_v1(self, name, amount=27, tab_key="recent", end_cursor=None):
+        self.calls.append(("hashtag_medias_paginated_v1", name, amount, tab_key, end_cursor))
+        return [_media_payload(41)], "next-hashtag-paginated"
+
+    async def hashtag_medias_paginated_gql(self, name, amount=27, end_cursor=None):
+        self.calls.append(("hashtag_medias_paginated_gql", name, amount, end_cursor))
+        return [_media_payload(42)], "next-hashtag-gql"
+
+    async def iter_hashtag_medias(self, name, amount=0, page_size=27, tab_key="recent"):
+        self.calls.append(("iter_hashtag_medias", name, amount, page_size, tab_key))
+        for media in [_media_payload(43), _media_payload(44)]:
+            yield media
+
+    async def media_link_reel(self, media_id, target_media_id, link_name="Watch Next"):
+        self.calls.append(("media_link_reel", media_id, target_media_id, link_name))
+        return True
+
+    async def media_share_to_story(
+        self,
+        media_id,
+        background=None,
+        caption="",
+        x=0.5,
+        y=0.4997396,
+        width=0.8,
+        height=0.60572916,
+        rotation=0.0,
+        extra_data=None,
+    ):
+        background_path = Path(background) if background else None
+        background_payload = background_path.read_bytes() if background_path else None
+        if background_path:
+            self.upload_paths.append(background_path)
+        self.calls.append(
+            (
+                "media_share_to_story",
+                media_id,
+                background_path.suffix if background_path else None,
+                background_payload,
+                caption,
+                x,
+                y,
+                width,
+                height,
+                rotation,
+                extra_data or {},
+            )
+        )
+        return _story_payload("shared-story")
+
+    async def media_upload_status(self, post_client_id):
+        self.calls.append(("media_upload_status", post_client_id))
+        return {"status": "ok", "post_client_id": post_client_id}
+
+    async def video_refresh_resources(self, media_id, should_fetch_all_language_variants=False):
+        self.calls.append(("video_refresh_resources", media_id, should_fetch_all_language_variants))
+        return {"media_id": media_id, "resources": []}
+
+    async def media_comments_public_gql(self, code, amount=50, max_requests=0):
+        self.calls.append(("media_comments_public_gql", code, amount, max_requests))
+        return [{"pk": "public-1", "text": "public comment"}]
+
+    async def iter_user_medias(self, user_id, amount=0, page_size=0):
+        self.calls.append(("iter_user_medias", user_id, amount, page_size))
+        for media in [_media_payload(45), _media_payload(46)]:
+            yield media
+
+    async def media_search(self, query, amount=27):
+        self.calls.append(("media_search", query, amount))
+        return [_media_payload(47)]
+
+    async def music_bookmarked(self, max_id=""):
+        self.calls.append(("music_bookmarked", max_id))
+        return {"items": [{"id": "track1"}], "max_id": max_id}
+
+    async def story_likers(self, story_pk, amount=0):
+        self.calls.append(("story_likers", story_pk, amount))
+        return [_user_short(1)]
+
+    async def story_poll_vote(self, story_id, poll_id, vote):
+        self.calls.append(("story_poll_vote", story_id, poll_id, vote))
+        return True
+
+    async def photo_upload_to_story_with_music(self, path, caption, track, **kwargs):
+        upload_path = Path(path)
+        self.upload_paths.append(upload_path)
+        self.calls.append(
+            (
+                "photo_upload_to_story_with_music",
+                upload_path.suffix,
+                upload_path.read_bytes(),
+                caption,
+                track.id,
+                kwargs.get("duration"),
+                kwargs.get("product"),
+            )
+        )
+        return _story_payload("photo-story-music")
+
+    async def video_upload_to_story_with_music(self, path, caption, track, **kwargs):
+        upload_path = Path(path)
+        self.upload_paths.append(upload_path)
+        self.calls.append(
+            (
+                "video_upload_to_story_with_music",
+                upload_path.suffix,
+                upload_path.read_bytes(),
+                caption,
+                track.id,
+                kwargs.get("product"),
+            )
+        )
+        return _story_payload("video-story-music")
+
+    async def clip_interest_topics(self):
+        self.calls.append(("clip_interest_topics",))
+        return [{"topic": "dance"}]
+
+    async def clip_mashup_info(self, media_pk):
+        self.calls.append(("clip_mashup_info", media_pk))
+        return {"media_pk": media_pk, "mashup_allowed": True}
+
+    async def clip_seen(self, media_ids, blend_media_ids=None):
+        self.calls.append(("clip_seen", media_ids, blend_media_ids))
+        return True
+
+    async def clip_share_to_fb_destination(
+        self,
+        config=None,
+        destination_id=None,
+        destination_type=None,
+        destination_audience_type=None,
+        validation_check_bypass=None,
+        use_unified_config=True,
+    ):
+        self.calls.append(
+            (
+                "clip_share_to_fb_destination",
+                config,
+                destination_id,
+                destination_type,
+                destination_audience_type,
+                validation_check_bypass,
+                use_unified_config,
+            )
+        )
+        return {"destination_id": destination_id}
+
+    async def clip_share_to_fb_unified_config(self, crosspost_app_surface_list=None):
+        self.calls.append(("clip_share_to_fb_unified_config", crosspost_app_surface_list))
+        return {"surfaces": crosspost_app_surface_list or []}
+
+    async def clip_share_to_fb_unified_destination(self, config=None):
+        self.calls.append(("clip_share_to_fb_unified_destination", config))
+        return {"config": config or {}}
+
+    async def direct_messages_chunk(self, thread_id, amount=20, cursor=None):
+        self.calls.append(("direct_messages_chunk", thread_id, amount, cursor))
+        return [_direct_message_payload()], "next-messages"
+
+    async def direct_thread_chunk(self, thread_id, amount=20, cursor=None):
+        self.calls.append(("direct_thread_chunk", thread_id, amount, cursor))
+        return _direct_thread_payload(), "next-thread"
 
 
 class FakeStorage:
@@ -1382,7 +1641,7 @@ async def test_direct_routes(storage):
     assert invalid_user_id.status_code == 422
     assert single.status_code == 422
     assert inbox.json()["next_cursor"] == "next-direct"
-    assert ("direct_threads_chunk", "", "", None, "direct-cursor") in storage.client.calls
+    assert ("direct_threads_chunk", None, None, None, "direct-cursor") in storage.client.calls
     assert ("direct_threads", 3, "unread", "primary", 2) in storage.client.calls
     assert ("direct_messages", 100, 4) in storage.client.calls
     assert ("direct_message", 100, 1, 6) in storage.client.calls
@@ -1685,7 +1944,7 @@ async def test_collection_and_explore_routes(storage):
     assert ("collections",) in storage.client.calls
     assert ("collection_pk_by_name", "Saved") in storage.client.calls
     assert ("collection_medias", "collection1", 7, 14) in storage.client.calls
-    assert ("collection_medias_by_name", "Saved") in storage.client.calls
+    assert ("collection_medias_by_name", "Saved", 21, 0) in storage.client.calls
     assert ("explore_page",) in storage.client.calls
     assert ("explore_page_media_info", 37) in storage.client.calls
 
@@ -1899,3 +2158,352 @@ async def test_story_viewers_keeps_unexpected_key_errors_visible(storage):
     with pytest.raises(KeyError, match="unexpected"):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
             await ac.get("/story/viewers", params={"sessionid": "sid", "story_pk": "1"})
+
+
+@pytest.mark.asyncio
+async def test_account_conversion_and_ai_info_routes(storage):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        business = await ac.post(
+            "/account/convert/business",
+            data={"sessionid": "sid", "category_id": "123", "should_show_category": "false"},
+        )
+        creator = await ac.post("/account/convert/creator", data={"sessionid": "sid"})
+        professional = await ac.post(
+            "/account/convert/professional",
+            data={
+                "sessionid": "sid",
+                "to_account_type": "2",
+                "entry_point": "profile",
+                "extra_data": json.dumps({"source": "test"}),
+            },
+        )
+        ai_info = await ac.patch("/account/ai-info", data={"sessionid": "sid", "enabled": "true"})
+        phone_code = await ac.post(
+            "/account/phone/confirm/code",
+            data={"sessionid": "sid", "phone_number": "+15550000000", "code": "123456", "has_sms_consent": "true"},
+        )
+
+    assert business.status_code == 200 and business.json()["username"] == "account"
+    assert creator.status_code == 200 and creator.json()["username"] == "account"
+    assert professional.status_code == 200 and professional.json()["username"] == "account"
+    assert ai_info.status_code == 200 and ai_info.json()["username"] == "account"
+    assert phone_code.status_code == 200 and phone_code.json()["phone_number"] == "+15550000000"
+    assert ("account_convert_to_business", "123", False, False) in storage.client.calls
+    assert ("account_convert_to_creator", "2347428775505624", True, False) in storage.client.calls
+    assert (
+        "account_convert_to_professional",
+        2,
+        "2347428775505624",
+        True,
+        False,
+        "profile",
+        False,
+        {"source": "test"},
+    ) in storage.client.calls
+    assert ("account_set_ai_info", True) in storage.client.calls
+    assert ("confirm_phone_number", "+15550000000", "123456", True) in storage.client.calls
+
+
+@pytest.mark.asyncio
+async def test_user_discovery_and_address_book_routes(storage):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        followers_private = await ac.get(
+            "/user/followers/private",
+            params={"sessionid": "sid", "user_id": "1", "amount": "5", "order": "date_followed_latest"},
+        )
+        following_private = await ac.get(
+            "/user/following/private",
+            params={"sessionid": "sid", "user_id": "1", "amount": "5"},
+        )
+        followers_iter = await ac.get(
+            "/user/followers/iter",
+            params={"sessionid": "sid", "user_id": "1", "amount": "2", "page_size": "10"},
+        )
+        following_iter = await ac.get(
+            "/user/following/iter",
+            params={"sessionid": "sid", "user_id": "1", "amount": "2", "page_size": "10"},
+        )
+        suggested = await ac.get(
+            "/user/suggested/profiles",
+            params={"sessionid": "sid", "user_id": "1", "expand_suggestion": "true"},
+        )
+        report = await ac.post("/user/report", data={"sessionid": "sid", "user_id": "1", "reason": "spam"})
+        link = await ac.post(
+            "/user/address-book/link",
+            data={"sessionid": "sid", "contacts": json.dumps([{"phone_number": "+15550000000"}])},
+        )
+        link_single = await ac.post(
+            "/user/address-book/link",
+            data={"sessionid": "sid", "contacts": json.dumps({"phone_number": "+15550000001"})},
+        )
+        link_blank = await ac.post(
+            "/user/address-book/link",
+            data={"sessionid": "sid", "contacts": ""},
+        )
+        unlink = await ac.delete("/user/address-book", params={"sessionid": "sid"})
+
+    assert followers_private.status_code == 200 and followers_private.json()[0]["pk"] == "1"
+    assert following_private.status_code == 200 and following_private.json()[0]["pk"] == "1"
+    assert followers_iter.status_code == 200 and len(followers_iter.json()) == 2
+    assert following_iter.status_code == 200 and len(following_iter.json()) == 2
+    assert suggested.status_code == 200 and suggested.json()["expand_suggestion"] is True
+    assert report.status_code == 200 and report.json() is True
+    assert link.status_code == 200 and link.json()["status"] == "ok"
+    assert link_single.status_code == 200 and link_single.json()["status"] == "ok"
+    assert link_blank.status_code == 422
+    assert unlink.status_code == 200 and unlink.json()["status"] == "ok"
+    assert ("user_followers_private_gql", "1", 5, None, "date_followed_latest", "u=3, i") in storage.client.calls
+    assert ("user_following_private_gql", "1", 5, None, None, "u=3, i") in storage.client.calls
+    assert ("iter_user_followers_v1", "1", 2, 10, None) in storage.client.calls
+    assert ("iter_user_following_v1", "1", 2, 10) in storage.client.calls
+    assert ("user_suggested_profiles", "1", True) in storage.client.calls
+    assert ("user_report", "1", "spam") in storage.client.calls
+    assert ("address_book_link", [{"phone_number": "+15550000000"}], ("extra_display_name", "thumbnails")) in storage.client.calls
+    assert ("address_book_link", [{"phone_number": "+15550000001"}], ("extra_display_name", "thumbnails")) in storage.client.calls
+    assert ("address_book_unlink",) in storage.client.calls
+
+
+@pytest.mark.asyncio
+async def test_hashtag_paginated_and_following_routes(storage):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        following = await ac.get("/hashtag/following", params={"sessionid": "sid", "amount": "3"})
+        paginated = await ac.get(
+            "/hashtag/media/paginated",
+            params={"sessionid": "sid", "name": "cats", "amount": "5", "tab_key": "top", "cursor": "c1"},
+        )
+        paginated_gql = await ac.get(
+            "/hashtag/media/paginated/gql",
+            params={"sessionid": "sid", "name": "cats", "amount": "5", "cursor": "c2"},
+        )
+        iterated = await ac.get(
+            "/hashtag/media/iter",
+            params={"sessionid": "sid", "name": "cats", "amount": "2", "page_size": "10", "tab_key": "clips"},
+        )
+
+    assert following.status_code == 200 and following.json()[0]["name"] == "followed"
+    assert paginated.status_code == 200 and paginated.json()["next_cursor"] == "next-hashtag-paginated"
+    assert paginated_gql.status_code == 200 and paginated_gql.json()["next_cursor"] == "next-hashtag-gql"
+    assert iterated.status_code == 200 and len(iterated.json()) == 2
+    assert ("hashtag_following", 3) in storage.client.calls
+    assert ("hashtag_medias_paginated_v1", "cats", 5, "top", "c1") in storage.client.calls
+    assert ("hashtag_medias_paginated_gql", "cats", 5, "c2") in storage.client.calls
+    assert ("iter_hashtag_medias", "cats", 2, 10, "clips") in storage.client.calls
+
+
+@pytest.mark.asyncio
+async def test_media_utility_routes(storage):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        link_reel = await ac.post(
+            "/media/link/reel",
+            data={"sessionid": "sid", "media_id": "m1", "target_media_id": "m2", "link_name": "Next"},
+        )
+        share_story = await ac.post(
+            "/media/share/to/story",
+            data={"sessionid": "sid", "media_id": "m1", "caption": "shared"},
+            files={"background": ("bg.jpg", b"bg-bytes", "image/jpeg")},
+        )
+        upload_status = await ac.get(
+            "/media/upload/status", params={"sessionid": "sid", "post_client_id": "pc1"}
+        )
+        video_resources = await ac.get(
+            "/media/video/resources",
+            params={"sessionid": "sid", "media_id": "m1", "should_fetch_all_language_variants": "true"},
+        )
+        public_comments = await ac.get(
+            "/media/comments/public", params={"sessionid": "sid", "code": "abc", "amount": "5", "max_requests": "2"}
+        )
+        user_media_iter = await ac.get(
+            "/user/media/iter", params={"sessionid": "sid", "user_id": "1", "amount": "2", "page_size": "10"}
+        )
+
+    assert link_reel.status_code == 200 and link_reel.json() is True
+    assert share_story.status_code == 200 and share_story.json()["pk"] == "shared-story"
+    assert upload_status.status_code == 200 and upload_status.json()["post_client_id"] == "pc1"
+    assert video_resources.status_code == 200 and video_resources.json()["media_id"] == "m1"
+    assert public_comments.status_code == 200 and public_comments.json()[0]["pk"] == "public-1"
+    assert user_media_iter.status_code == 200 and len(user_media_iter.json()) == 2
+    assert ("media_link_reel", "m1", "m2", "Next") in storage.client.calls
+    assert ("media_share_to_story", "m1", ".jpg", b"bg-bytes", "shared", 0.5, 0.4997396, 0.8, 0.60572916, 0.0, {}) in storage.client.calls
+    assert ("media_upload_status", "pc1") in storage.client.calls
+    assert ("video_refresh_resources", "m1", True) in storage.client.calls
+    assert ("media_comments_public_gql", "abc", 5, 2) in storage.client.calls
+    assert ("iter_user_medias", "1", 2, 10) in storage.client.calls
+
+
+@pytest.mark.asyncio
+async def test_search_music_bookmark_and_story_utility_routes(storage):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        media_search = await ac.get("/search/media", params={"sessionid": "sid", "query": "cats", "amount": "5"})
+        bookmarked = await ac.get("/music/bookmarked", params={"sessionid": "sid", "max_id": "m1"})
+        likers = await ac.get("/story/likers", params={"sessionid": "sid", "story_pk": "1", "amount": "3"})
+        poll_vote = await ac.post(
+            "/story/poll/vote",
+            data={"sessionid": "sid", "story_id": "s1", "poll_id": "p1", "vote": "1"},
+        )
+
+    assert media_search.status_code == 200 and media_search.json()[0]["pk"] == 47
+    assert bookmarked.status_code == 200 and bookmarked.json()["max_id"] == "m1"
+    assert likers.status_code == 200 and likers.json()[0]["pk"] == "1"
+    assert poll_vote.status_code == 200 and poll_vote.json() is True
+    assert ("media_search", "cats", 5) in storage.client.calls
+    assert ("music_bookmarked", "m1") in storage.client.calls
+    assert ("story_likers", "1", 3) in storage.client.calls
+    assert ("story_poll_vote", "s1", "p1", 1) in storage.client.calls
+
+
+@pytest.mark.asyncio
+async def test_clip_utility_routes(storage):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        topics = await ac.get("/clip/interest/topics", params={"sessionid": "sid"})
+        mashup = await ac.get("/clip/mashup/info", params={"sessionid": "sid", "media_pk": "1"})
+        seen = await ac.patch(
+            "/clip/seen",
+            data={"sessionid": "sid", "media_ids": ["m1", "m2"], "blend_media_ids": ["b1"]},
+        )
+        destination = await ac.get(
+            "/clip/share/facebook/destination",
+            params={
+                "sessionid": "sid",
+                "config": json.dumps({"a": 1}),
+                "destination_id": "d1",
+                "destination_type": "USER",
+                "validation_check_bypass": json.dumps(True),
+            },
+        )
+        unified_config = await ac.get(
+            "/clip/share/facebook/unified/config",
+            params={"sessionid": "sid", "crosspost_app_surface_list": json.dumps([{"surface": "IG_REELS"}])},
+        )
+        unified_destination = await ac.get(
+            "/clip/share/facebook/unified/destination",
+            params={"sessionid": "sid", "config": json.dumps({"b": 2})},
+        )
+
+    assert topics.status_code == 200 and topics.json()[0]["topic"] == "dance"
+    assert mashup.status_code == 200 and mashup.json()["mashup_allowed"] is True
+    assert seen.status_code == 200 and seen.json() is True
+    assert destination.status_code == 200 and destination.json()["destination_id"] == "d1"
+    assert unified_config.status_code == 200 and unified_config.json()["surfaces"] == [{"surface": "IG_REELS"}]
+    assert unified_destination.status_code == 200 and unified_destination.json()["config"] == {"b": 2}
+    assert ("clip_interest_topics",) in storage.client.calls
+    assert ("clip_mashup_info", "1") in storage.client.calls
+    assert ("clip_seen", ["m1", "m2"], ["b1"]) in storage.client.calls
+    assert (
+        "clip_share_to_fb_destination",
+        {"a": 1},
+        "d1",
+        "USER",
+        None,
+        True,
+        True,
+    ) in storage.client.calls
+    assert ("clip_share_to_fb_unified_config", [{"surface": "IG_REELS"}]) in storage.client.calls
+    assert ("clip_share_to_fb_unified_destination", {"b": 2}) in storage.client.calls
+
+
+@pytest.mark.asyncio
+async def test_direct_chunk_routes(storage):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        messages = await ac.get(
+            "/direct/messages/chunk",
+            params={"sessionid": "sid", "thread_id": "100", "amount": "5", "cursor": "c1"},
+        )
+        thread = await ac.get(
+            "/direct/thread/chunk",
+            params={"sessionid": "sid", "thread_id": "100", "amount": "5", "cursor": "c2"},
+        )
+
+    assert messages.status_code == 200 and messages.json()["next_cursor"] == "next-messages"
+    assert thread.status_code == 200 and thread.json()["next_cursor"] == "next-thread"
+    assert ("direct_messages_chunk", 100, 5, "c1") in storage.client.calls
+    assert ("direct_thread_chunk", 100, 5, "c2") in storage.client.calls
+
+
+@pytest.mark.asyncio
+async def test_story_upload_with_music_routes(storage):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        photo_story = await ac.post(
+            "/photo/upload/to/story/with/music",
+            data={
+                "sessionid": "sid",
+                "caption": "photo story",
+                "track": json.dumps({"id": "t1", "title": "T", "subtitle": "A", "display_artist": "A", "audio_cluster_id": 1, "highlight_start_times_in_ms": [1000], "is_explicit": False, "dash_manifest": "", "has_lyrics": False, "audio_asset_id": 2, "duration_in_ms": 30000, "allows_saving": True, "territory_validity_periods": {}}),
+                "duration": "20",
+            },
+            files={"file": ("photo.jpg", b"photo-bytes", "image/jpeg")},
+        )
+        video_story = await ac.post(
+            "/video/upload/to/story/with/music",
+            data={
+                "sessionid": "sid",
+                "caption": "video story",
+                "track": json.dumps({"id": "t2", "title": "T", "subtitle": "A", "display_artist": "A", "audio_cluster_id": 1, "highlight_start_times_in_ms": [1000], "is_explicit": False, "dash_manifest": "", "has_lyrics": False, "audio_asset_id": 3, "duration_in_ms": 30000, "allows_saving": True, "territory_validity_periods": {}}),
+            },
+            files={"file": ("video.mp4", b"video-bytes", "video/mp4")},
+        )
+        generic_photo = await ac.post(
+            "/story/upload/with/music",
+            data={
+                "sessionid": "sid",
+                "caption": "generic photo",
+                "track": json.dumps({"id": "t3", "title": "T", "subtitle": "A", "display_artist": "A", "audio_cluster_id": 1, "highlight_start_times_in_ms": [1000], "is_explicit": False, "dash_manifest": "", "has_lyrics": False, "audio_asset_id": 4, "duration_in_ms": 30000, "allows_saving": True, "territory_validity_periods": {}}),
+            },
+            files={"file": ("photo.jpg", b"generic-photo", "image/jpeg")},
+        )
+        generic_video = await ac.post(
+            "/story/upload/with/music",
+            data={
+                "sessionid": "sid",
+                "caption": "generic video",
+                "track": json.dumps({"id": "t4", "title": "T", "subtitle": "A", "display_artist": "A", "audio_cluster_id": 1, "highlight_start_times_in_ms": [1000], "is_explicit": False, "dash_manifest": "", "has_lyrics": False, "audio_asset_id": 5, "duration_in_ms": 30000, "allows_saving": True, "territory_validity_periods": {}}),
+            },
+            files={"file": ("video.mp4", b"generic-video", "video/mp4")},
+        )
+
+    assert photo_story.status_code == 200 and photo_story.json()["pk"] == "photo-story-music"
+    assert video_story.status_code == 200 and video_story.json()["pk"] == "video-story-music"
+    assert generic_photo.status_code == 200 and generic_photo.json()["pk"] == "photo-story-music"
+    assert generic_video.status_code == 200 and generic_video.json()["pk"] == "video-story-music"
+    assert (
+        "photo_upload_to_story_with_music",
+        ".jpg",
+        b"photo-bytes",
+        "photo story",
+        "t1",
+        20.0,
+        "story_camera_music_overlay_post_capture",
+    ) in storage.client.calls
+    assert (
+        "video_upload_to_story_with_music",
+        ".mp4",
+        b"video-bytes",
+        "video story",
+        "t2",
+        "story_camera_music_overlay_post_capture",
+    ) in storage.client.calls
+    assert (
+        "photo_upload_to_story_with_music",
+        ".jpg",
+        b"generic-photo",
+        "generic photo",
+        "t3",
+        None,
+        "story_camera_music_overlay_post_capture",
+    ) in storage.client.calls
+    assert (
+        "video_upload_to_story_with_music",
+        ".mp4",
+        b"generic-video",
+        "generic video",
+        "t4",
+        "story_camera_music_overlay_post_capture",
+    ) in storage.client.calls
+
+
+@pytest.mark.asyncio
+async def test_note_audience_validation_rejects_unknown_value(storage):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        response = await ac.post("/note", data={"sessionid": "sid", "text": "note", "audience": "9"})
+
+    assert response.status_code == 422
+    assert "audience" in response.json()["detail"]

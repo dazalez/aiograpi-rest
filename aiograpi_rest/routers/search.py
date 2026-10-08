@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional
 
-from aiograpi.types import Hashtag, Location, Track, UserShort
+from aiograpi.types import Hashtag, Location, Media, Track, UserShort
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -52,6 +52,19 @@ async def search_music(
     """
     cl = await clients.get(sessionid)
     return await cl.search_music(query)
+
+
+@router.get("/media", response_model=List[Media])
+async def search_media(
+    sessionid: str = Depends(get_sessionid),
+    query: str = Query(...),
+    amount: int = Query(27, ge=1, le=200),
+    clients: ClientStorage = Depends(get_clients),
+) -> List[Media]:
+    """Search media
+    """
+    cl = await clients.get(sessionid)
+    return await cl.media_search(query, amount)
 
 
 @router.get("/locations", response_model=List[Location])

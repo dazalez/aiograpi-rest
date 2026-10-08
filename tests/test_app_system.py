@@ -218,12 +218,16 @@ async def test_openapi_uses_sessionid_authorize_button_for_protected_routes():
 async def test_openapi_uses_rest_http_methods():
     expected_methods = {
         "/account": {"get", "patch"},
+        "/account/ai-info": {"patch"},
         "/account/archive/media": {"get"},
         "/account/bio-links": {"delete"},
         "/account/biography": {"patch"},
         "/account/collection": {"get"},
         "/account/collection/media": {"get"},
         "/account/collections": {"get"},
+        "/account/convert/business": {"post"},
+        "/account/convert/creator": {"post"},
+        "/account/convert/professional": {"post"},
         "/account/email/confirm": {"post"},
         "/account/email/confirmation": {"post"},
         "/account/external-url": {"delete", "patch"},
@@ -238,6 +242,7 @@ async def test_openapi_uses_rest_http_methods():
         "/account/password": {"patch"},
         "/account/password/reset": {"post"},
         "/account/phone/confirm": {"post"},
+        "/account/phone/confirm/code": {"post"},
         "/account/picture": {"patch"},
         "/account/privacy": {"patch"},
         "/account/security": {"get"},
@@ -257,8 +262,14 @@ async def test_openapi_uses_rest_http_methods():
         "/clip/creation/info": {"get"},
         "/clip/download": {"get"},
         "/clip/download/by/url": {"get"},
+        "/clip/interest/topics": {"get"},
+        "/clip/mashup/info": {"get"},
         "/clip/pin": {"delete", "post"},
+        "/clip/seen": {"patch"},
         "/clip/share/facebook/config": {"get"},
+        "/clip/share/facebook/destination": {"get"},
+        "/clip/share/facebook/unified/config": {"get"},
+        "/clip/share/facebook/unified/destination": {"get"},
         "/clip/template": {"get"},
         "/clip/trial-eligibility": {"get"},
         "/clip/upload": {"post"},
@@ -278,6 +289,7 @@ async def test_openapi_uses_rest_http_methods():
         "/direct/message/reaction": {"delete", "post"},
         "/direct/message/seen": {"patch"},
         "/direct/messages": {"get"},
+        "/direct/messages/chunk": {"get"},
         "/direct/messages/search": {"get"},
         "/direct/pending": {"get"},
         "/direct/pending/inbox": {"get"},
@@ -293,6 +305,7 @@ async def test_openapi_uses_rest_http_methods():
         "/direct/story": {"post"},
         "/direct/thread": {"delete", "get", "patch", "post"},
         "/direct/thread/by/participants": {"get"},
+        "/direct/thread/chunk": {"get"},
         "/direct/thread/message": {"post"},
         "/direct/thread/mute": {"delete", "post"},
         "/direct/thread/seen": {"patch"},
@@ -306,6 +319,10 @@ async def test_openapi_uses_rest_http_methods():
         "/explore/media": {"get"},
         "/hashtag": {"get"},
         "/hashtag/follow": {"delete", "post"},
+        "/hashtag/following": {"get"},
+        "/hashtag/media/iter": {"get"},
+        "/hashtag/media/paginated": {"get"},
+        "/hashtag/media/paginated/gql": {"get"},
         "/hashtag/media/recent": {"get"},
         "/hashtag/media/top": {"get"},
         "/hashtag/reels": {"get"},
@@ -334,10 +351,12 @@ async def test_openapi_uses_rest_http_methods():
         "/media/comment/pin": {"delete", "post"},
         "/media/comment/replies": {"get"},
         "/media/comments": {"get"},
+        "/media/comments/public": {"get"},
         "/media/comments/stream": {"get"},
         "/media/like": {"delete", "post"},
         "/account/liked/media": {"get"},
         "/media/likers": {"get"},
+        "/media/link/reel": {"post"},
         "/media/livestream": {"get", "patch", "post"},
         "/media/livestream/comments": {"get"},
         "/media/livestream/viewers": {"get"},
@@ -346,8 +365,12 @@ async def test_openapi_uses_rest_http_methods():
         "/media/pin": {"delete", "post"},
         "/media/save": {"delete", "post"},
         "/media/seen": {"patch"},
+        "/media/share/to/story": {"post"},
+        "/media/upload/status": {"get"},
+        "/media/video/resources": {"get"},
         "/media/author": {"get"},
         "/music/bookmark": {"post"},
+        "/music/bookmarked": {"get"},
         "/music/clips/browser": {"get"},
         "/music/feed/browser": {"get"},
         "/music/keywords": {"get"},
@@ -367,6 +390,7 @@ async def test_openapi_uses_rest_http_methods():
         "/photo/download/by/url": {"get"},
         "/photo/upload": {"post"},
         "/photo/upload/by/url": {"post"},
+        "/photo/upload/to/story/with/music": {"post"},
         "/photo/upload/with/music": {"post"},
         "/ready": {"get"},
         "/reels": {"get"},
@@ -379,6 +403,7 @@ async def test_openapi_uses_rest_http_methods():
         "/search/hashtags": {"get"},
         "/search/item": {"get"},
         "/search/locations": {"get"},
+        "/search/media": {"get"},
         "/search/music": {"get"},
         "/search/places": {"get"},
         "/search/recent": {"get"},
@@ -399,29 +424,40 @@ async def test_openapi_uses_rest_http_methods():
         "/story/download": {"get"},
         "/story/download/by/url": {"get"},
         "/story/like": {"delete", "post"},
+        "/story/likers": {"get"},
+        "/story/poll/vote": {"post"},
         "/story/seen": {"patch"},
         "/story/stickers": {"get"},
+        "/story/tray": {"get"},
         "/story/users": {"get"},
         "/story/upload": {"post"},
         "/story/upload/by/url": {"post"},
+        "/story/upload/with/music": {"post"},
         "/story/viewers": {"get"},
         "/track": {"get"},
         "/track/download/by/url": {"get"},
         "/track/stream": {"get"},
         "/user": {"get"},
         "/user/about": {"get"},
+        "/user/address-book": {"delete"},
+        "/user/address-book/link": {"post"},
         "/user/block": {"delete", "post"},
         "/user/close-friend": {"delete", "post"},
         "/user/creator": {"get"},
         "/user/featured/accounts": {"get"},
         "/user/follower": {"delete"},
         "/user/followers": {"get"},
+        "/user/followers/iter": {"get"},
+        "/user/followers/private": {"get"},
         "/user/following": {"get"},
+        "/user/following/iter": {"get"},
+        "/user/following/private": {"get"},
         "/user/friendship": {"get"},
         "/user/friendships": {"get"},
         "/user/fundraiser": {"get"},
         "/user/guides": {"get"},
         "/user/highlights": {"get"},
+        "/user/media/iter": {"get"},
         "/user/profile/web": {"get"},
         "/user/posts": {"get"},
         "/user/pinned/posts": {"get"},
@@ -434,8 +470,10 @@ async def test_openapi_uses_rest_http_methods():
         "/user/follow": {"delete", "post"},
         "/user/reels": {"get"},
         "/user/recommendations": {"get"},
+        "/user/report": {"post"},
         "/user/stories": {"get"},
         "/user/stream": {"get"},
+        "/user/suggested/profiles": {"get"},
         "/user/suggestions": {"get"},
         "/user/suggestions/details": {"get"},
         "/user/tagged/posts": {"get"},
@@ -444,6 +482,7 @@ async def test_openapi_uses_rest_http_methods():
         "/video/download/by/url": {"get"},
         "/video/upload": {"post"},
         "/video/upload/by/url": {"post"},
+        "/video/upload/to/story/with/music": {"post"},
     }
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
@@ -879,6 +918,31 @@ async def test_exception_handler_wraps_errors_in_envelope(monkeypatch):
     assert body["exc_type"] == "RuntimeError"
 
 
+@pytest.mark.asyncio
+async def test_exception_handler_maps_login_required_to_401():
+    from aiograpi_rest.dependencies import get_clients
+
+    class ExpiredStorage:
+        async def get(self, sessionid):
+            raise aiograpi_exceptions.LoginRequired("login_required")
+
+        def close(self):
+            pass
+
+    app.dependency_overrides[get_clients] = lambda: ExpiredStorage()
+    transport = ASGITransport(app=app, raise_app_exceptions=False)
+    try:
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            response = await ac.get("/account/feed/timeline", params={"sessionid": "x"})
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 401
+    body = response.json()
+    assert body["exc_type"] == "LoginRequired"
+    assert "no longer valid" in body["hint"]
+
+
 @pytest.mark.parametrize(
     "exc",
     [
@@ -1019,7 +1083,7 @@ async def test_authorized_routes_accept_sessionid_header(monkeypatch):
             self.seen_sessionid = sessionid
 
             class Client:
-                async def get_timeline_feed(self):
+                async def get_timeline_feed(self, max_id=None):
                     return {"feed": []}
 
             return Client()
@@ -1052,7 +1116,7 @@ async def test_authorized_routes_accept_sessionid_cookie(monkeypatch):
             self.seen_sessionid = sessionid
 
             class Client:
-                async def get_timeline_feed(self):
+                async def get_timeline_feed(self, max_id=None):
                     return {"feed": []}
 
             return Client()

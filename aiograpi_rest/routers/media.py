@@ -1,8 +1,10 @@
+from pathlib import Path
+from tempfile import NamedTemporaryFile, TemporaryDirectory
 from typing import Any, Dict, List, Literal, Optional
 
 from aiograpi import Client
-from aiograpi.types import Comment, Media, UserShort
-from fastapi import APIRouter, Depends, Form, HTTPException, Query
+from aiograpi.types import Comment, Media, Story, UserShort
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 
 from aiograpi_rest.dependencies import ClientStorage, get_clients, get_sessionid
 from aiograpi_rest.helpers import (
@@ -24,6 +26,13 @@ user_router = APIRouter(
     tags=["User"],
     responses={404: {"description": "Not found"}},
 )
+
+
+async def _write_media_upload(file: UploadFile, directory: str, fallback_suffix: str) -> Path:
+    suffix = Path(file.filename or "").suffix or fallback_suffix
+    with NamedTemporaryFile(suffix=suffix, delete=False, dir=directory) as tmp:
+        tmp.write(await file.read())
+        return Path(tmp.name)
 
 
 @router.get("", response_model=Media)
@@ -158,6 +167,20 @@ async def user_videos(sessionid: str = Depends(get_sessionid),
     """
     cl = await clients.get(sessionid)
     return await _user_videos_page(cl, user_id, username, amount, cursor)
+
+
+@user_router.get("/media/iter", response_model=List[Media])
+async def user_medias_iter(sessionid: str = Depends(get_sessionid),
+                           user_id: Optional[str] = Query(None, description="Instagram numeric user PK."),
+                           username: Optional[str] = Query(None, description="Instagram username."),
+                           amount: int = Query(0, ge=0),
+                           page_size: int = Query(0, ge=0),
+                           clients: ClientStorage = Depends(get_clients)) -> List[Media]:
+    """Collect a user's media by iterating the paginated endpoint
+    """
+    cl = await clients.get(sessionid)
+    resolved_user_id = await _resolve_user_id(cl, user_id, username)
+    return [media async for media in cl.iter_user_medias(resolved_user_id, amount, page_size)]
 
 
 @router.delete("", response_model=bool)
@@ -553,3 +576,90 @@ async def media_unpin(sessionid: str = Depends(get_sessionid),
     """
     cl = await clients.get(sessionid)
     return await cl.media_unpin(media_pk)
+
+
+@router.post("/link/reel", response_model=bool)
+async def media_link_reel(
+    sessionid: str = Depends(get_sessionid),
+    media_id: str = Form(...),
+    target_media_id: str = Form(...),
+    link_name: str = Form("Watch Next"),
+    clients: ClientStorage = Depends(get_clients),
+) -> bool:
+    """Link a Reel to another media
+    """
+    cl = await clients.get(sessionid)
+    return await cl.media_link_reel(media_id, target_media_id, link_name)
+
+
+@router.post("/share/to/story", response_model=Story)
+async def media_share_to_story(
+    sessionid: str = Depends(get_sessionid),
+    media_id: str = Form(...),
+    background: Optional[UploadFile] = File(None),
+    caption: str = Form(""),
+    x: float = Form(0.5),
+    y: float = Form(0.4997396),
+    width: float = Form(0.8),
+    height: float = Form(0.60572916),
+    rotation: float = Form(0.0),
+    extra_data: Optional[str] = Form(None, description="JSON-encoded extra data. Leave empty to omit."),
+    clients: ClientStorage = Depends(get_clients),
+) -> Story:
+    """Share a media item to a story
+    """
+    cl = await clients.get(sessionid)
+    background_path = None
+    with TemporaryDirectory() as directory:
+        if background is not None:
+            background_path = await _write_media_upload(background, directory, ".jpg")
+        return await cl.media_share_to_story(
+            media_id,
+            background=background_path,
+            caption=caption,
+            x=x,
+            y=y,
+            width=width,
+            height=height,
+            rotation=rotation,
+            extra_data=parse_json_form_dict(extra_data, "extra_data", default=None),
+        )
+
+
+@router.get("/upload/status", response_model=Dict[str, Any])
+async def media_upload_status(
+    sessionid: str = Depends(get_sessionid),
+    post_client_id: str = Query(...),
+    clients: ClientStorage = Depends(get_clients),
+) -> Dict[str, Any]:
+    """Get the upload status for a post client id
+    """
+    cl = await clients.get(sessionid)
+    return await cl.media_upload_status(post_client_id)
+
+
+@router.get("/video/resources", response_model=Dict[str, Any])
+async def media_video_refresh_resources(
+    sessionid: str = Depends(get_sessionid),
+    media_id: str = Query(...),
+    should_fetch_all_language_variants: bool = Query(False),
+    clients: ClientStorage = Depends(get_clients),
+) -> Dict[str, Any]:
+    """Refresh video resources for a media item
+    """
+    cl = await clients.get(sessionid)
+    return await cl.video_refresh_resources(media_id, should_fetch_all_language_variants)
+
+
+@router.get("/comments/public", response_model=List[Dict[str, Any]])
+async def media_comments_public(
+    sessionid: str = Depends(get_sessionid),
+    code: str = Query(...),
+    amount: int = Query(50, ge=1, le=200),
+    max_requests: int = Query(0, ge=0),
+    clients: ClientStorage = Depends(get_clients),
+) -> List[Dict[str, Any]]:
+    """List public comments for a media shortcode
+    """
+    cl = await clients.get(sessionid)
+    return await cl.media_comments_public_gql(code, amount, max_requests)

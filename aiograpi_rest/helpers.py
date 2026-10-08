@@ -62,6 +62,15 @@ def parse_json_form_dict(value, field_name: str, default=None):
         _invalid_json_form_field(field_name, exc)
 
 
+def parse_json_form_value(value, field_name: str, default=None):
+    if _is_blank_form_value(value):
+        return default
+    try:
+        return json.loads(value)
+    except (json.JSONDecodeError, TypeError, ValueError) as exc:
+        _invalid_json_form_field(field_name, exc)
+
+
 def parse_upload_usertags(usertags):
     return parse_json_form_models(usertags, Usertag, "usertags")
 
@@ -142,10 +151,9 @@ async def photo_upload_post(cl, content, **kwargs):
 
 
 async def photo_upload_with_music_post(cl, content, **kwargs):
-    with tempfile.NamedTemporaryFile(suffix='.jpg') as fp:
-        fp.write(content)
-        fp.flush()
-        return await cl.photo_upload_with_music(fp.name, **kwargs)
+    with tempfile.TemporaryDirectory() as td:
+        path = _write_temp_file(td, content, '.jpg')
+        return await cl.photo_upload_with_music(path, **kwargs)
 
 
 async def video_upload_post(cl, content, **kwargs):
@@ -194,3 +202,15 @@ async def clip_upload_with_music_post(cl, content, **kwargs):
     with tempfile.TemporaryDirectory() as td:
         path = _write_temp_file(td, content, '.mp4')
         return await cl.clip_upload_with_music(path, **_normalize_thumbnail(kwargs, td))
+
+
+async def photo_upload_to_story_with_music_post(cl, content, **kwargs):
+    with tempfile.TemporaryDirectory() as td:
+        path = _write_temp_file(td, content, '.jpg')
+        return await cl.photo_upload_to_story_with_music(path, **_normalize_thumbnail(kwargs, td))
+
+
+async def video_upload_to_story_with_music_post(cl, content, **kwargs):
+    with tempfile.TemporaryDirectory() as td:
+        path = _write_temp_file(td, content, '.mp4')
+        return await cl.video_upload_to_story_with_music(path, **_normalize_thumbnail(kwargs, td))

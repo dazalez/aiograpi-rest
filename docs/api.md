@@ -1,7 +1,7 @@
 # API Guide
 
-This guide is current for `aiograpi-rest v6.0.0`, which wraps
-`aiograpi==1.0.9`.
+This guide is current for `aiograpi-rest v7.0.0`, which wraps
+`aiograpi==2.0.15`.
 
 ## Authentication
 
@@ -25,6 +25,21 @@ parameters, form data, or a `sessionid` cookie for backwards compatibility.
 from `aiograpi` settings because `Client.get_settings()` does not include proxy
 transport state.
 
+### Login Flow
+
+`POST /auth/login` accepts an optional `login_flow` form field:
+
+- `caa` (default): uses aiograpi's current Android CAA flow (`Client.login`).
+  This is the flow aiograpi 2.x uses by default and the one Instagram expects
+  for new logins.
+- `legacy`: uses the previous accounts endpoint through `Client.login_legacy`.
+  Use it only when the CAA flow cannot complete for an account.
+
+Both flows accept `verification_code` for two-factor challenges. aiograpi 2.x
+also continues through the legacy flow automatically when Instagram explicitly
+returns a `CAA_LOGIN_FALLBACK` instruction, so the default `caa` value is the
+right choice for almost every caller.
+
 Use `PATCH /auth/settings` to update an existing session after login. Send the
 session through `X-Session-ID` or the legacy `sessionid` form field, then pass
 any of:
@@ -33,6 +48,19 @@ any of:
 - `proxy`: proxy URL for all restored clients. Pass an empty value to clear it.
 - `locale`: locale such as `en_US`.
 - `timezone`: timezone offset in seconds, such as `10800`.
+
+### Stories
+
+- `GET /user/stories?user_id=...` returns a user's active stories.
+- `GET /story/tray` returns the reels tray, the list of users with active
+  stories in the last 24 hours. Each tray entry includes the user profile and
+  the first story thumbnail.
+- `GET /highlight?highlight_pk=...` returns a highlight with its `items`, which
+  are the archived stories behind a highlight cover.
+
+Clients that render a 24-hour stories tray should call `GET /story/tray`; to
+open an individual highlight, call `GET /highlight` rather than
+`GET /user/stories`, because a highlight PK is not a user PK.
 
 ### Two-Factor Login
 

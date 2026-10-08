@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Query
 from pydantic import BaseModel, ValidationError
 
 from aiograpi_rest.dependencies import ClientStorage, get_clients, get_sessionid
+from aiograpi_rest.helpers import parse_json_form_dict, parse_json_form_value
 from aiograpi_rest.pagination import UserShortPage
 
 router = APIRouter(
@@ -97,6 +98,31 @@ async def user_following(sessionid: str = Depends(get_sessionid),
     cl = await clients.get(sessionid)
     items, next_cursor = await cl.user_following_v1_chunk(user_id, amount, cursor or "")
     return UserShortPage(items=items, next_cursor=next_cursor or "")
+
+
+@router.get("/followers/iter", response_model=List[UserShort])
+async def user_followers_iter(sessionid: str = Depends(get_sessionid),
+                              user_id: str = Query(...),
+                              amount: int = Query(0, ge=0),
+                              page_size: int = Query(200, ge=1, le=200),
+                              order: Optional[Literal["date_followed_latest", "date_followed_earliest"]] = Query(None),
+                              clients: ClientStorage = Depends(get_clients)) -> List[UserShort]:
+    """Collect a user's followers by iterating the paginated endpoint
+    """
+    cl = await clients.get(sessionid)
+    return [user async for user in cl.iter_user_followers_v1(user_id, amount, page_size, order)]
+
+
+@router.get("/following/iter", response_model=List[UserShort])
+async def user_following_iter(sessionid: str = Depends(get_sessionid),
+                              user_id: str = Query(...),
+                              amount: int = Query(0, ge=0),
+                              page_size: int = Query(200, ge=1, le=200),
+                              clients: ClientStorage = Depends(get_clients)) -> List[UserShort]:
+    """Collect accounts a user follows by iterating the paginated endpoint
+    """
+    cl = await clients.get(sessionid)
+    return [user async for user in cl.iter_user_following_v1(user_id, amount, page_size)]
 
 
 @router.get("", response_model=User)
@@ -473,3 +499,90 @@ async def user_guides(sessionid: str = Depends(get_sessionid),
     """
     cl = await clients.get(sessionid)
     return await cl.user_guides_v1(user_id)
+
+
+@router.get("/followers/private", response_model=List[UserShort])
+async def user_followers_private(
+    sessionid: str = Depends(get_sessionid),
+    user_id: str = Query(...),
+    amount: int = Query(0, ge=0),
+    rank_token: Optional[str] = Query(None),
+    order: Optional[Literal["date_followed_latest", "date_followed_earliest"]] = Query(None),
+    priority: str = Query("u=3, i"),
+    clients: ClientStorage = Depends(get_clients),
+) -> List[UserShort]:
+    """List a user's followers through the private GraphQL endpoint
+    """
+    cl = await clients.get(sessionid)
+    return await cl.user_followers_private_gql(user_id, amount, rank_token, order, priority)
+
+
+@router.get("/following/private", response_model=List[UserShort])
+async def user_following_private(
+    sessionid: str = Depends(get_sessionid),
+    user_id: str = Query(...),
+    amount: int = Query(0, ge=0),
+    rank_token: Optional[str] = Query(None),
+    order: Optional[Literal["date_followed_latest", "date_followed_earliest"]] = Query(None),
+    priority: str = Query("u=3, i"),
+    clients: ClientStorage = Depends(get_clients),
+) -> List[UserShort]:
+    """List accounts a user follows through the private GraphQL endpoint
+    """
+    cl = await clients.get(sessionid)
+    return await cl.user_following_private_gql(user_id, amount, rank_token, order, priority)
+
+
+@router.get("/suggested/profiles", response_model=Dict[str, Any])
+async def user_suggested_profiles(
+    sessionid: str = Depends(get_sessionid),
+    user_id: str = Query(...),
+    expand_suggestion: bool = Query(False),
+    clients: ClientStorage = Depends(get_clients),
+) -> Dict[str, Any]:
+    """Get suggested profiles for a target user
+    """
+    cl = await clients.get(sessionid)
+    return await cl.user_suggested_profiles(user_id, expand_suggestion)
+
+
+@router.post("/report", response_model=bool)
+async def user_report(
+    sessionid: str = Depends(get_sessionid),
+    user_id: str = Form(...),
+    reason: Literal["spam"] = Form("spam"),
+    clients: ClientStorage = Depends(get_clients),
+) -> bool:
+    """Report a user
+    """
+    cl = await clients.get(sessionid)
+    return await cl.user_report(user_id, reason)
+
+
+@router.post("/address-book/link", response_model=Dict[str, Any])
+async def user_address_book_link(
+    sessionid: str = Depends(get_sessionid),
+    contacts: str = Form("", description="JSON-encoded list of AddressBookContact objects or dicts."),
+    include: List[str] = Form(["extra_display_name", "thumbnails"]),
+    clients: ClientStorage = Depends(get_clients),
+) -> Dict[str, Any]:
+    """Link address book contacts
+    """
+    cl = await clients.get(sessionid)
+    parsed_contacts = parse_json_form_value(contacts, "contacts", default=None)
+    if parsed_contacts is None:
+        raise HTTPException(status_code=422, detail="contacts must be a JSON array")
+    if isinstance(parsed_contacts, dict):
+        parsed_contacts = [parsed_contacts]
+    return await cl.address_book_link(parsed_contacts, tuple(include))
+
+
+@router.delete("/address-book", response_model=Dict[str, Any])
+async def user_address_book_unlink(
+    sessionid: str = Depends(get_sessionid),
+    clients: ClientStorage = Depends(get_clients),
+) -> Dict[str, Any]:
+    """Unlink address book contacts
+    """
+    cl = await clients.get(sessionid)
+    return await cl.address_book_unlink()

@@ -47,13 +47,16 @@ class MethodClassification:
 
 
 INTERNAL_AREAS = {
+    "attestation",
     "auth",
     "bloks",
     "challenge",
+    "crossposting",
     "graphql",
     "password",
     "private",
     "public",
+    "realtime",
     "signup",
 }
 INTERNAL_EXACT_METHODS = {
@@ -73,6 +76,7 @@ INTERNAL_EXACT_METHODS = {
     "request_log",
     "clip_music_extra_data",
     "clip_share_to_fb_extra_data",
+    "story_music_extra_data",
     "set_app",
     "set_country",
     "set_country_code",
@@ -502,14 +506,14 @@ def main() -> int:
 
     content = build_markdown()
     if args.check:
-        current = DOC_PATH.read_text() if DOC_PATH.exists() else ""
+        current = DOC_PATH.read_text(encoding="utf-8") if DOC_PATH.exists() else ""
         if current != content:
             print(f"{DOC_PATH} is out of date. Run scripts/generate_aiograpi_coverage.py.")
             return 1
         return 0
 
     DOC_PATH.parent.mkdir(parents=True, exist_ok=True)
-    DOC_PATH.write_text(content)
+    DOC_PATH.write_text(content, encoding="utf-8")
     print(f"Wrote {DOC_PATH.relative_to(ROOT)}")
     return 0
 

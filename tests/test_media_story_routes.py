@@ -135,6 +135,10 @@ class FakeMediaClient:
         self.calls.append(("sticker_tray",))
         return {"status": "ok", "stickers": [{"id": "sticker1", "name": "Sticker"}]}
 
+    async def get_reels_tray_feed(self, reason="pull_to_refresh"):
+        self.calls.append(("get_reels_tray_feed", reason))
+        return {"tray": [{"id": 1, "user": {"username": "user1"}}], "unseen_count": 1}
+
     async def story_delete(self, story_pk):
         self.calls.append(("story_delete", story_pk))
         return True
@@ -549,6 +553,18 @@ async def test_story_stickers_returns_sticker_tray(storage):
     assert response.status_code == 200
     assert response.json()["stickers"][0]["id"] == "sticker1"
     assert ("sticker_tray",) in storage.client.calls
+
+
+@pytest.mark.asyncio
+async def test_story_tray_returns_reels_tray_feed(storage):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        response = await ac.get(
+            "/story/tray",
+            params={"sessionid": "sid", "reason": "cold_start"},
+        )
+    assert response.status_code == 200
+    assert response.json()["tray"][0]["user"]["username"] == "user1"
+    assert ("get_reels_tray_feed", "cold_start") in storage.client.calls
 
 
 @pytest.mark.asyncio

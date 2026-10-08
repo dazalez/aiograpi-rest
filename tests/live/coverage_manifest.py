@@ -32,6 +32,7 @@ REVERSIBLE_MUTATIONS = {
     ("POST", "/media/like"): "DELETE /media/like",
     ("DELETE", "/media/like"): "GET /media",
     ("PATCH", "/media/seen"): "GET /media",
+    ("PATCH", "/clip/seen"): "GET /reels",
     ("POST", "/media/comment"): "GET /media/comments",
     ("DELETE", "/media/comment"): "GET /media/comments",
     ("POST", "/media/comment/check/offensive"): "same response",
@@ -48,6 +49,7 @@ REVERSIBLE_MUTATIONS = {
     ("POST", "/story/like"): "DELETE /story/like",
     ("DELETE", "/story/like"): "GET /story",
     ("PATCH", "/story/seen"): "GET /story",
+    ("POST", "/story/poll/vote"): "GET /story",
     ("POST", "/user/follow"): "GET /user/friendship",
     ("DELETE", "/user/follow"): "GET /user/friendship",
     ("DELETE", "/user/follower"): "GET /user/friendship",
@@ -82,13 +84,17 @@ UPLOAD_MUTATIONS = {
     ("POST", "/clip/upload/with/music"): "GET /media",
     ("POST", "/igtv/upload"): "GET /media",
     ("POST", "/igtv/upload/by/url"): "GET /media",
+    ("POST", "/media/share/to/story"): "GET /story + GET /user/stories + GET /story/download",
     ("POST", "/photo/upload"): "GET /media",
     ("POST", "/photo/upload/by/url"): "GET /media",
     ("POST", "/photo/upload/with/music"): "GET /media",
+    ("POST", "/photo/upload/to/story/with/music"): "GET /story + GET /user/stories + GET /story/download",
     ("POST", "/story/upload"): "GET /story + GET /user/stories + GET /story/download",
     ("POST", "/story/upload/by/url"): "GET /story + GET /user/stories + GET /story/download",
+    ("POST", "/story/upload/with/music"): "GET /story + GET /user/stories + GET /story/download",
     ("POST", "/video/upload"): "GET /media",
     ("POST", "/video/upload/by/url"): "GET /media",
+    ("POST", "/video/upload/to/story/with/music"): "GET /story + GET /user/stories + GET /story/download",
 }
 
 GUARDED_PREFIX_REASONS = {
@@ -99,10 +105,13 @@ GUARDED_PREFIX_REASONS = {
     ("/direct", "direct fixture"): "requires controlled Direct threads, users, and messages",
     ("/highlight", "highlight fixture"): "requires owned story/highlight fixtures",
     ("/media/archive", "owned media"): "requires owned media and archive state cleanup",
+    ("/media/link/reel", "owned media"): "requires owned media and a linked Reel fixture",
     ("/media/livestream", "live broadcast"): "creates or mutates a real livestream",
     ("/media/pin", "owned media"): "requires owned media and visible profile cleanup",
     ("/media/comment/pin", "owned comment"): "requires owned media comments",
     ("/notifications", "account settings"): "changes notification settings on the authenticated account",
+    ("/user/address-book", "address book"): "uploads or removes the authenticated account's address book contacts",
+    ("/user/report", "user report"): "files a real report against another account",
 }
 
 GUARDED_EXACT_REASONS: dict[tuple[str, str], str] = {

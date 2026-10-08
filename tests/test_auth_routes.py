@@ -31,6 +31,10 @@ class FakeClient:
         self.calls.append(("login", username, password, verification_code))
         return True
 
+    async def login_legacy(self, username, password, verification_code=""):
+        self.calls.append(("login_legacy", username, password, verification_code))
+        return True
+
     async def login_by_sessionid(self, sessionid):
         self.calls.append(("login_by_sessionid", sessionid))
         return True
@@ -53,7 +57,8 @@ class FakeClient:
         self.calls.append(("expose",))
         return {"ok": True}
 
-    async def get_timeline_feed(self):
+    async def get_timeline_feed(self, max_id=None):
+        self.calls.append(("get_timeline_feed", max_id))
         return {"feed": []}
 
     async def _challenge_code_handler(self, username, choice=None, **kwargs):
@@ -158,27 +163,34 @@ async def test_login_returns_false_without_persisting_on_failure(fake_storage):
 
 
 @pytest.mark.asyncio
-async def test_login_2fa_fallback_invokes_input_patch(fake_storage):
-    captured = {}
-
-    original_login = fake_storage.created.login
-
-    async def picky_login(username, password, verification_code=None):
-        if verification_code is not None:
-            raise TypeError("verification_code not supported")
-        captured["called"] = (username, password)
-        return await original_login(username, password)
-
-    fake_storage.created.login = picky_login
-
+async def test_login_legacy_flow_uses_login_legacy(fake_storage):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         response = await ac.post(
             "/auth/login",
-            data={"username": "u", "password": "p", "verification_code": "999111"},
+            data={
+                "username": "u",
+                "password": "p",
+                "verification_code": "999111",
+                "login_flow": "legacy",
+            },
         )
 
     assert response.status_code == 200
-    assert captured["called"] == ("u", "p")
+    assert response.json() == "sid"
+    assert fake_storage.created.calls == [("login_legacy", "u", "p", "999111")]
+    assert fake_storage.saved == [fake_storage.created]
+
+
+@pytest.mark.asyncio
+async def test_login_rejects_unknown_login_flow(fake_storage):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        response = await ac.post(
+            "/auth/login",
+            data={"username": "u", "password": "p", "login_flow": "bogus"},
+        )
+
+    assert response.status_code == 422
+    assert fake_storage.saved == []
 
 
 @pytest.mark.asyncio
@@ -454,3 +466,16 @@ async def test_timeline_feed_awaits_aiograpi(fake_storage):
 
     assert response.status_code == 200
     assert response.json() == {"feed": []}
+    assert ("get_timeline_feed", None) in fake_storage.created.calls
+
+
+@pytest.mark.asyncio
+async def test_timeline_feed_forwards_max_id_cursor(fake_storage):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        response = await ac.get(
+            "/account/feed/timeline",
+            params={"sessionid": "sid", "max_id": "cursor-1"},
+        )
+
+    assert response.status_code == 200
+    assert ("get_timeline_feed", "cursor-1") in fake_storage.created.calls

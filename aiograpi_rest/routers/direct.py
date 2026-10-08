@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 from aiograpi_rest.dependencies import ClientStorage, get_clients, get_sessionid
 from aiograpi_rest.helpers import parse_json_form_dict, parse_json_form_models
-from aiograpi_rest.pagination import DirectThreadPage
+from aiograpi_rest.pagination import DirectMessagePage, DirectThreadPage
 
 router = APIRouter(
     prefix="/direct",
@@ -46,8 +46,8 @@ async def direct_inbox(
     """
     cl = await clients.get(sessionid)
     items, next_cursor = await cl.direct_threads_chunk(
-        selected_filter,
-        box,
+        selected_filter or None,
+        box or None,
         thread_message_limit,
         cursor or None,
     )
@@ -127,7 +127,7 @@ async def direct_threads(
     """List direct threads
     """
     cl = await clients.get(sessionid)
-    return await cl.direct_threads(amount, selected_filter, box, thread_message_limit)
+    return await cl.direct_threads(amount, selected_filter or None, box or None, thread_message_limit)
 
 
 @router.get("/channels", response_model=List[Dict[str, Any]])
@@ -327,6 +327,36 @@ async def direct_messages(
     return await cl.direct_messages(thread_id, amount)
 
 
+@router.get("/messages/chunk", response_model=DirectMessagePage)
+async def direct_messages_chunk(
+    sessionid: str = Depends(get_sessionid),
+    thread_id: int = Query(...),
+    amount: int = Query(20),
+    cursor: str = Query(""),
+    clients: ClientStorage = Depends(get_clients),
+) -> DirectMessagePage:
+    """Get a page of messages in a direct thread
+    """
+    cl = await clients.get(sessionid)
+    items, next_cursor = await cl.direct_messages_chunk(thread_id, amount, cursor or None)
+    return DirectMessagePage(items=items, next_cursor=next_cursor or "")
+
+
+@router.get("/thread/chunk", response_model=DirectThreadPage)
+async def direct_thread_chunk(
+    sessionid: str = Depends(get_sessionid),
+    thread_id: int = Query(...),
+    amount: int = Query(20),
+    cursor: str = Query(""),
+    clients: ClientStorage = Depends(get_clients),
+) -> DirectThreadPage:
+    """Get a page of a direct thread
+    """
+    cl = await clients.get(sessionid)
+    thread, next_cursor = await cl.direct_thread_chunk(thread_id, amount, cursor or None)
+    return DirectThreadPage(items=[thread], next_cursor=next_cursor or "")
+
+
 @router.get("/messages/search", response_model=List[DirectMessageSearchResult])
 async def direct_message_search(
     sessionid: str = Depends(get_sessionid),
@@ -522,7 +552,12 @@ async def direct_media_share(
     """Share media to direct users
     """
     cl = await clients.get(sessionid)
-    return await cl.direct_media_share(media_id, _direct_user_ids(user_ids), send_attribute, media_type)
+    return await cl.direct_media_share(
+        media_id,
+        user_ids=_direct_user_ids(user_ids),
+        send_attribute=send_attribute,
+        media_type=media_type,
+    )
 
 
 def _validate_direct_targets(user_ids: List[str], thread_ids: List[int]) -> None:

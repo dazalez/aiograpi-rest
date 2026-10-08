@@ -193,3 +193,15 @@ async def music_original_audio_title_availability(
     """
     cl = await clients.get(sessionid)
     return await cl.music_verify_original_audio_title(name)
+
+
+@music_router.get("/bookmarked", response_model=Dict[str, Any])
+async def music_bookmarked(
+    sessionid: str = Depends(get_sessionid),
+    max_id: str = Query(""),
+    clients: ClientStorage = Depends(get_clients),
+) -> Dict[str, Any]:
+    """List bookmarked music
+    """
+    cl = await clients.get(sessionid)
+    return await cl.music_bookmarked(max_id)

@@ -43,7 +43,6 @@ class ClientStorage:
         cl.set_settings(settings)
         if row.get("proxy"):
             cl.set_proxy(row["proxy"])
-        await cl.get_timeline_feed()
         return cl
 
     def set(self, cl: Client) -> bool:

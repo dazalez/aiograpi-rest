@@ -1,6 +1,5 @@
 import json
-from typing import Dict, List, Optional, Union
-from unittest.mock import patch
+from typing import Dict, List, Literal, Optional, Union
 
 from aiograpi import Client
 from fastapi import APIRouter, Depends, Form, HTTPException, Query
@@ -41,6 +40,14 @@ async def auth_login(username: str = Form(...),
                              "with the same username and password plus this value."
                          ),
                      ),
+                     login_flow: Literal["caa", "legacy"] = Form(
+                         "caa",
+                         description=(
+                             "Login flow to use. `caa` (default) uses aiograpi's current Android "
+                             "CAA flow; `legacy` uses the previous accounts endpoint via "
+                             "`login_legacy`."
+                         ),
+                     ),
                      proxy: Optional[str] = Form(""),
                      locale: Optional[str] = Form(""),
                      timezone: Optional[str] = Form(""),
@@ -50,18 +57,10 @@ async def auth_login(username: str = Form(...),
     cl = clients.client()
     _apply_client_options(cl, proxy, locale, timezone)
 
-    # Handle 2FA if verification code is provided
-    if verification_code:
-        # Try login with 2FA code directly
-        try:
-            result = await cl.login(username, password, verification_code=verification_code)
-        except TypeError:
-            # Fallback to mocking input if the direct parameter doesn't work
-            with patch('builtins.input', return_value=verification_code):
-                result = await cl.login(username, password)
+    if login_flow == "legacy":
+        result = await cl.login_legacy(username, password, verification_code=verification_code)
     else:
-        # Regular login without 2FA
-        result = await cl.login(username, password)
+        result = await cl.login(username, password, verification_code=verification_code)
 
     if result:
         clients.set(cl)

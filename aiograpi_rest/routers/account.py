@@ -7,6 +7,7 @@ from aiograpi.types import Account, Collection, Media, UserShort
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 
 from aiograpi_rest.dependencies import ClientStorage, get_clients, get_sessionid
+from aiograpi_rest.helpers import parse_json_form_dict
 from aiograpi_rest.pagination import MediaPage, UserShortPage
 
 router = APIRouter(
@@ -57,12 +58,13 @@ async def account_info(
 @router.get("/feed/timeline", response_model=Dict)
 async def timeline_feed(
     sessionid: str = Depends(get_sessionid),
+    max_id: str = Query("", description="Pagination cursor from a previous response's next_max_id."),
     clients: ClientStorage = Depends(get_clients),
 ) -> Dict:
     """Get your timeline feed
     """
     cl = await clients.get(sessionid)
-    return await cl.get_timeline_feed()
+    return await cl.get_timeline_feed(max_id=max_id or None)
 
 
 @router.get("/feed/new", response_model=bool)
@@ -238,7 +240,7 @@ async def account_collection_media(
     _ensure_single_collection_selector(collection_pk, name)
     cl = await clients.get(sessionid)
     if name:
-        return await cl.collection_medias_by_name(name)
+        return await cl.collection_medias_by_name(name, amount, last_media_pk)
     return await cl.collection_medias(collection_pk, amount, last_media_pk)
 
 
@@ -417,3 +419,83 @@ async def account_privacy(
     if is_private:
         return await cl.account_set_private()
     return await cl.account_set_public()
+
+
+@router.post("/convert/business", response_model=Account)
+async def account_convert_business(
+    sessionid: str = Depends(get_sessionid),
+    category_id: str = Form("2347428775505624"),
+    should_show_category: bool = Form(True),
+    should_show_public_contacts: bool = Form(False),
+    clients: ClientStorage = Depends(get_clients),
+) -> Account:
+    """Convert authenticated account to a business account
+    """
+    cl = await clients.get(sessionid)
+    return await cl.account_convert_to_business(category_id, should_show_category, should_show_public_contacts)
+
+
+@router.post("/convert/creator", response_model=Account)
+async def account_convert_creator(
+    sessionid: str = Depends(get_sessionid),
+    category_id: str = Form("2347428775505624"),
+    should_show_category: bool = Form(True),
+    should_show_public_contacts: bool = Form(False),
+    clients: ClientStorage = Depends(get_clients),
+) -> Account:
+    """Convert authenticated account to a creator account
+    """
+    cl = await clients.get(sessionid)
+    return await cl.account_convert_to_creator(category_id, should_show_category, should_show_public_contacts)
+
+
+@router.post("/convert/professional", response_model=Account)
+async def account_convert_professional(
+    sessionid: str = Depends(get_sessionid),
+    to_account_type: int = Form(3),
+    category_id: str = Form("2347428775505624"),
+    should_show_category: bool = Form(True),
+    should_show_public_contacts: bool = Form(False),
+    entry_point: str = Form("setting"),
+    creator_destination_migration: bool = Form(False),
+    extra_data: Optional[str] = Form(None, description="JSON-encoded extra data. Leave empty to omit."),
+    clients: ClientStorage = Depends(get_clients),
+) -> Account:
+    """Convert authenticated account to a professional account
+    """
+    cl = await clients.get(sessionid)
+    return await cl.account_convert_to_professional(
+        to_account_type,
+        category_id,
+        should_show_category,
+        should_show_public_contacts,
+        entry_point,
+        creator_destination_migration,
+        parse_json_form_dict(extra_data, "extra_data", default=None),
+    )
+
+
+@router.patch("/ai-info", response_model=Account)
+async def account_ai_info(
+    sessionid: str = Depends(get_sessionid),
+    enabled: bool = Form(...),
+    clients: ClientStorage = Depends(get_clients),
+) -> Account:
+    """Set authenticated account AI info visibility
+    """
+    cl = await clients.get(sessionid)
+    return await cl.account_set_ai_info(enabled)
+
+
+@router.post("/phone/confirm/code", response_model=Dict[str, Any])
+async def account_phone_confirm_code(
+    sessionid: str = Depends(get_sessionid),
+    phone_number: str = Form(...),
+    code: str = Form(...),
+    has_sms_consent: bool = Form(False),
+    clients: ClientStorage = Depends(get_clients),
+) -> Dict[str, Any]:
+    """Confirm an account phone number with the received code
+    """
+    cl = await clients.get(sessionid)
+    return await cl.confirm_phone_number(phone_number, code, has_sms_consent)

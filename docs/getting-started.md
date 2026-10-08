@@ -9,7 +9,7 @@ docker run --rm -p 8000:8000 subzeroid/aiograpi-rest
 For a pinned runtime, use the current stable tag:
 
 ```bash
-docker run --rm -p 8000:8000 subzeroid/aiograpi-rest:6.0.0
+docker run --rm -p 8000:8000 subzeroid/aiograpi-rest:7.0.0
 ```
 
 Open <http://localhost:8000/docs> for Swagger UI.

@@ -40,14 +40,14 @@ class FakeClientWithPrivateProxy(FakeClient):
 
 
 @pytest.mark.asyncio
-async def test_get_restores_settings_and_validates_timeline(tmp_path, monkeypatch):
+async def test_get_restores_settings_without_extra_network_call(tmp_path, monkeypatch):
     storage = ClientStorage(db_path=tmp_path / "db.json", client_factory=FakeClient)
     storage.db.insert({"sessionid": "sid", "settings": json.dumps({"x": 1})})
 
     client = await storage.get("sid")
 
     assert client.settings == {"x": 1}
-    assert client.timeline_called is True
+    assert client.timeline_called is False
 
 
 def test_set_persists_client_settings(tmp_path):
@@ -97,7 +97,7 @@ async def test_get_restores_persisted_proxy(tmp_path):
     client = await storage.get("sid")
 
     assert client.proxy == "http://proxy.example:8080"
-    assert client.timeline_called is True
+    assert client.timeline_called is False
 
 
 def test_storage_path_can_come_from_environment(tmp_path, monkeypatch):

@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 import requests
 from aiograpi.types import Media, Track
@@ -14,6 +14,7 @@ from aiograpi_rest.helpers import (
     clip_upload_with_music_post,
     parse_json_form_dict,
     parse_json_form_model,
+    parse_json_form_value,
     parse_upload_location,
     parse_upload_usertags,
 )
@@ -97,6 +98,96 @@ async def clip_template(
     """
     cl = await clients.get(sessionid)
     return await cl.media_template_v1(media_id)
+
+
+@router.get("/interest/topics", response_model=List[Dict[str, Any]])
+async def clip_interest_topics(
+    sessionid: str = Depends(get_sessionid),
+    clients: ClientStorage = Depends(get_clients),
+) -> List[Dict[str, Any]]:
+    """List Reel interest topics
+    """
+    cl = await clients.get(sessionid)
+    return await cl.clip_interest_topics()
+
+
+@router.get("/mashup/info", response_model=Dict[str, Any])
+async def clip_mashup_info(
+    sessionid: str = Depends(get_sessionid),
+    media_pk: str = Query(...),
+    clients: ClientStorage = Depends(get_clients),
+) -> Dict[str, Any]:
+    """Get Reel mashup info
+    """
+    cl = await clients.get(sessionid)
+    return await cl.clip_mashup_info(media_pk)
+
+
+@router.patch("/seen", response_model=bool)
+async def clip_seen(
+    sessionid: str = Depends(get_sessionid),
+    media_ids: List[str] = Form(...),
+    blend_media_ids: Optional[List[str]] = Form(None),
+    clients: ClientStorage = Depends(get_clients),
+) -> bool:
+    """Mark Reels as seen
+    """
+    cl = await clients.get(sessionid)
+    return await cl.clip_seen(media_ids, blend_media_ids)
+
+
+@router.get("/share/facebook/destination", response_model=Dict[str, Any])
+async def clip_share_facebook_destination(
+    sessionid: str = Depends(get_sessionid),
+    config: Optional[str] = Query(None, description="JSON-encoded config object. Leave empty to omit."),
+    destination_id: Optional[str] = Query(None),
+    destination_type: Optional[Literal["USER", "PAGE"]] = Query(None),
+    destination_audience_type: Optional[str] = Query(None),
+    validation_check_bypass: Optional[str] = Query(None, description="JSON-encoded bool, list, or string."),
+    use_unified_config: bool = Query(True),
+    clients: ClientStorage = Depends(get_clients),
+) -> Dict[str, Any]:
+    """Get Reel Facebook sharing destination
+    """
+    cl = await clients.get(sessionid)
+    return await cl.clip_share_to_fb_destination(
+        parse_json_form_dict(config, "config", default=None),
+        destination_id,
+        destination_type,
+        destination_audience_type,
+        parse_json_form_value(validation_check_bypass, "validation_check_bypass", default=None),
+        use_unified_config,
+    )
+
+
+@router.get("/share/facebook/unified/config", response_model=Dict[str, Any])
+async def clip_share_facebook_unified_config(
+    sessionid: str = Depends(get_sessionid),
+    crosspost_app_surface_list: Optional[str] = Query(
+        None, description="JSON-encoded list of surface objects. Leave empty to omit."
+    ),
+    clients: ClientStorage = Depends(get_clients),
+) -> Dict[str, Any]:
+    """Get Reel Facebook unified sharing config
+    """
+    cl = await clients.get(sessionid)
+    return await cl.clip_share_to_fb_unified_config(
+        parse_json_form_value(crosspost_app_surface_list, "crosspost_app_surface_list", default=None)
+    )
+
+
+@router.get("/share/facebook/unified/destination", response_model=Dict[str, Any])
+async def clip_share_facebook_unified_destination(
+    sessionid: str = Depends(get_sessionid),
+    config: Optional[str] = Query(None, description="JSON-encoded config object. Leave empty to omit."),
+    clients: ClientStorage = Depends(get_clients),
+) -> Dict[str, Any]:
+    """Get Reel Facebook unified sharing destination
+    """
+    cl = await clients.get(sessionid)
+    return await cl.clip_share_to_fb_unified_destination(
+        parse_json_form_dict(config, "config", default=None)
+    )
 
 
 @router.get("/download")

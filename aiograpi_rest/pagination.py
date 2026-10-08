@@ -1,6 +1,6 @@
 from typing import List
 
-from aiograpi.types import Comment, DirectThread, Media, StoryArchiveDay, UserShort, Viewer
+from aiograpi.types import Comment, DirectMessage, DirectThread, Media, StoryArchiveDay, UserShort, Viewer
 from pydantic import BaseModel
 
 
@@ -27,6 +27,11 @@ class UserShortPage(BaseModel):
 
 class DirectThreadPage(BaseModel):
     items: List[DirectThread]
+    next_cursor: str
+
+
+class DirectMessagePage(BaseModel):
+    items: List[DirectMessage]
     next_cursor: str
 
 

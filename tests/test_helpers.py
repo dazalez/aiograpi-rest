@@ -308,6 +308,20 @@ def test_parse_json_form_dict_rejects_non_object_json():
     assert exc.value.detail == "Invalid JSON object for form field 'extra_data'"
 
 
+def test_parse_json_form_value_accepts_any_json_and_blank_default():
+    assert helpers.parse_json_form_value("[1, 2]", "contacts") == [1, 2]
+    assert helpers.parse_json_form_value("true", "validation_check_bypass") is True
+    assert helpers.parse_json_form_value("", "contacts", default=None) is None
+    assert helpers.parse_json_form_value(None, "contacts", default=[]) == []
+
+
+def test_parse_json_form_value_rejects_invalid_json():
+    with pytest.raises(HTTPException) as exc:
+        helpers.parse_json_form_value("{bad-json", "contacts")
+    assert exc.value.status_code == 422
+    assert exc.value.detail == "Invalid JSON object for form field 'contacts'"
+
+
 @pytest.mark.asyncio
 async def test_album_upload_post_collects_files_into_tempdir():
     cl = FakeClient()

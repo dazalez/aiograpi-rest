@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 import requests
 from aiograpi import Client
@@ -11,6 +11,7 @@ from aiograpi.types import (
     StoryLocation,
     StoryMention,
     StorySticker,
+    Track,
     UserShort,
 )
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
@@ -18,7 +19,13 @@ from fastapi.responses import FileResponse
 from pydantic import AnyHttpUrl, ValidationError
 
 from aiograpi_rest.dependencies import ClientStorage, get_clients, get_sessionid
-from aiograpi_rest.helpers import photo_upload_story_as_photo, photo_upload_story_as_video, video_upload_story
+from aiograpi_rest.helpers import (
+    photo_upload_story_as_photo,
+    photo_upload_story_as_video,
+    photo_upload_to_story_with_music_post,
+    video_upload_story,
+    video_upload_to_story_with_music_post,
+)
 from aiograpi_rest.pagination import StoryArchiveDayPage, ViewerPage
 
 router = APIRouter(
@@ -121,6 +128,66 @@ async def story_upload(sessionid: str = Depends(get_sessionid),
         hashtags=_parse_json_form_models(hashtags, StoryHashtag, "hashtags"),
         locations=_parse_json_form_models(locations, StoryLocation, "locations"),
         stickers=_parse_json_form_models(stickers, StorySticker, "stickers"))
+
+
+@router.post("/upload/with/music", response_model=Story)
+async def story_upload_with_music(sessionid: str = Depends(get_sessionid),
+                                  file: UploadFile = File(...),
+                                  caption: str = Form(...),
+                                  track: str = Form(..., description="JSON-encoded Track object."),
+                                  thumbnail: Optional[UploadFile] = File(None),
+                                  mentions: Optional[List[str]] = Form(
+                                      [], description=_json_form_description("StoryMention")
+                                  ),
+                                  locations: Optional[List[str]] = Form(
+                                      [], description=_json_form_description("StoryLocation")
+                                  ),
+                                  links: Optional[List[str]] = Form(
+                                      [], description=_json_form_description("StoryLink")
+                                  ),
+                                  hashtags: Optional[List[str]] = Form(
+                                      [], description=_json_form_description("StoryHashtag")
+                                  ),
+                                  stickers: Optional[List[str]] = Form(
+                                      [], description=_json_form_description("StorySticker")
+                                  ),
+                                  extra_data: Optional[str] = Form(
+                                      None, description="JSON-encoded extra data. Leave empty to omit."
+                                  ),
+                                  audio_asset_start_time: Optional[int] = Form(None),
+                                  overlap_duration: Optional[int] = Form(None),
+                                  original_volume: float = Form(0.0),
+                                  music_volume: float = Form(1.0),
+                                  product: str = Form("story_camera_music_overlay_post_capture"),
+                                  alacorn_session_id: str = Form("null"),
+                                  clients: ClientStorage = Depends(get_clients)) -> Story:
+    """Upload a photo or video story with music
+    """
+    cl = await clients.get(sessionid)
+    content = await file.read()
+    parsed_track = _parse_json_form_models([track], Track, "track")[0]
+    parsed_extra_data = json.loads(extra_data) if extra_data else {}
+    thumbnail_content = await thumbnail.read() if thumbnail is not None else None
+    kwargs = dict(
+        caption=caption,
+        track=parsed_track,
+        thumbnail=thumbnail_content,
+        mentions=_parse_json_form_models(mentions, StoryMention, "mentions"),
+        locations=_parse_json_form_models(locations, StoryLocation, "locations"),
+        links=_parse_json_form_models(links, StoryLink, "links"),
+        hashtags=_parse_json_form_models(hashtags, StoryHashtag, "hashtags"),
+        stickers=_parse_json_form_models(stickers, StorySticker, "stickers"),
+        extra_data=parsed_extra_data,
+        audio_asset_start_time=audio_asset_start_time,
+        overlap_duration=overlap_duration,
+        original_volume=original_volume,
+        music_volume=music_volume,
+        product=product,
+        alacorn_session_id=alacorn_session_id,
+    )
+    if (file.content_type or "").startswith("video/"):
+        return await video_upload_to_story_with_music_post(cl, content, **kwargs)
+    return await photo_upload_to_story_with_music_post(cl, content, **kwargs)
 
 
 @router.post("/upload/by/url", response_model=Story)
@@ -245,6 +312,29 @@ async def story_viewers(sessionid: str = Depends(get_sessionid),
     return ViewerPage(items=items, next_cursor=next_cursor or "")
 
 
+@router.get("/likers", response_model=List[UserShort])
+async def story_likers(sessionid: str = Depends(get_sessionid),
+                       story_pk: str = Query(...),
+                       amount: int = Query(0, ge=0),
+                       clients: ClientStorage = Depends(get_clients)) -> List[UserShort]:
+    """List users who liked a story
+    """
+    cl = await clients.get(sessionid)
+    return await cl.story_likers(story_pk, amount)
+
+
+@router.post("/poll/vote", response_model=bool)
+async def story_poll_vote(sessionid: str = Depends(get_sessionid),
+                          story_id: str = Form(...),
+                          poll_id: str = Form(...),
+                          vote: int = Form(...),
+                          clients: ClientStorage = Depends(get_clients)) -> bool:
+    """Vote in a story poll
+    """
+    cl = await clients.get(sessionid)
+    return await cl.story_poll_vote(story_id, poll_id, vote)
+
+
 @router.get("/archive", response_model=StoryArchiveDayPage)
 async def story_archive(sessionid: str = Depends(get_sessionid),
                         amount: int = Query(50, ge=1, le=200),
@@ -285,6 +375,18 @@ async def story_stickers(
     """
     cl = await clients.get(sessionid)
     return await cl.sticker_tray()
+
+
+@router.get("/tray", response_model=Dict[str, Any])
+async def story_tray(
+    sessionid: str = Depends(get_sessionid),
+    reason: Literal["cold_start", "pull_to_refresh"] = Query("pull_to_refresh"),
+    clients: ClientStorage = Depends(get_clients),
+) -> Dict[str, Any]:
+    """Get the reels tray (users with active stories in the last 24 hours)
+    """
+    cl = await clients.get(sessionid)
+    return await cl.get_reels_tray_feed(reason)
 
 
 @router.get("/users", response_model=List[UserShort])

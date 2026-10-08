@@ -790,6 +790,12 @@ async def handle_exception(request, exc: Exception):
     elif isinstance(exc, aiograpi_exceptions.UnknownError) and "The username you entered" in str(exc):
         status_code = 401
         body["hint"] = "Check the Instagram username and retry POST /auth/login."
+    elif isinstance(exc, aiograpi_exceptions.LoginRequired):
+        status_code = 401
+        body["hint"] = (
+            "The saved session is no longer valid. Log in again with POST /auth/login "
+            "or import a fresh session with POST /auth/login/by/sessionid."
+        )
     return JSONResponse(body, status_code=status_code)
 
 

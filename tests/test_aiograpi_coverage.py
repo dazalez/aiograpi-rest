@@ -15,7 +15,7 @@ from scripts.generate_aiograpi_coverage import (
 
 
 def test_aiograpi_coverage_doc_is_current():
-    assert DOC_PATH.read_text() == build_markdown()
+    assert DOC_PATH.read_text(encoding="utf-8") == build_markdown()
 
 
 def test_rest_routes_reference_existing_aiograpi_methods():

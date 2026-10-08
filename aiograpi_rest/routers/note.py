@@ -1,7 +1,8 @@
 from typing import Any, Dict, List, Optional
 
+from aiograpi.mixins.note import NoteAudience
 from aiograpi.types import Note
-from fastapi import APIRouter, Depends, Form, Query
+from fastapi import APIRouter, Depends, Form, HTTPException, Query
 from pydantic import BaseModel
 
 from aiograpi_rest.dependencies import ClientStorage, get_clients, get_sessionid
@@ -10,6 +11,16 @@ router = APIRouter(
     tags=["Note"],
     responses={404: {"description": "Not found"}},
 )
+
+
+def _note_audience(audience: int) -> NoteAudience:
+    try:
+        return NoteAudience(audience)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail="audience must be 0 (mutual followers) or 1 (close friends)",
+        ) from exc
 
 
 class MusicNoteCreate(BaseModel):
@@ -91,7 +102,7 @@ async def note_create(
     """Create a note
     """
     cl = await clients.get(sessionid)
-    return await cl.create_note(text, audience)
+    return await cl.create_note(text, _note_audience(audience))
 
 
 @router.post("/note/music", response_model=Note)
@@ -106,7 +117,7 @@ async def note_music_create(
     return await cl.create_music_note(
         payload.track,
         text=payload.text,
-        audience=payload.audience,
+        audience=_note_audience(payload.audience),
         start_time=payload.start_time,
         duration=payload.duration,
         browse_session_id=payload.browse_session_id,
