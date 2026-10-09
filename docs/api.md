@@ -1,7 +1,7 @@
 # API Guide
 
-This guide is current for `aiograpi-rest v7.0.0`, which wraps
-`aiograpi==2.0.15`.
+This guide is current for `aiograpi-rest v7.0.1`, which wraps
+`aiograpi==2.0.17`.
 
 ## Authentication
 

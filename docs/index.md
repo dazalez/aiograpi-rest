@@ -43,5 +43,5 @@ generated [aiograpi coverage report](aiograpi-coverage.md) lists every public
 client method, whether it is reachable through a REST route, and whether an
 uncovered method is a duplicate implementation variant or an internal helper.
 
-Current stable release: `v7.0.0`, wrapping `aiograpi==2.0.15`. See the
+Current stable release: `v7.0.1`, wrapping `aiograpi==2.0.17`. See the
 [changelog](changelog.md) for release notes and verification evidence.

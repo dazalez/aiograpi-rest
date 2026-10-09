@@ -46,8 +46,8 @@ such as `/media/unlike`, `/user/unfollow`, and `/media/unarchive` were removed
 before the public API became widely used; use `DELETE /media/like`,
 `DELETE /user/follow`, and `DELETE /media/archive`.
 
-Current stable release: [`v7.0.0`](CHANGELOG.md), wrapping `aiograpi==2.0.15`.
-Use `subzeroid/aiograpi-rest:7.0.0` when you want a pinned Docker runtime, or
+Current stable release: [`v7.0.1`](CHANGELOG.md), wrapping `aiograpi==2.0.17`.
+Use `subzeroid/aiograpi-rest:7.0.1` when you want a pinned Docker runtime, or
 `subzeroid/aiograpi-rest:latest` when you intentionally want the newest release.
 
 ```bash

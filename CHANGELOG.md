@@ -1,5 +1,18 @@
 # Changelog
 
+## v7.0.1 - 2026-10-10
+
+### Changed
+
+- Upgraded the wrapped client to `aiograpi==2.0.17` (from `2.0.15`).
+- Updated the package version to `7.0.1`.
+
+### Verified
+
+- The public `aiograpi.Client` surface is unchanged between `2.0.15` and
+  `2.0.17`; the generated coverage report only differs in the pinned version
+  line, so no router changes were required.
+
 ## v7.0.0 - 2026-10-08
 
 ### Changed
