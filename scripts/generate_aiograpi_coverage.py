@@ -98,6 +98,7 @@ COVERED_BY_REST_EXACT_METHODS = {
     "location_medias_top": "covered by `GET /location/media/top`",
     "media_code_from_pk": "identifier helper; `GET /media` accepts code, pk, id, or url",
     "media_id": "identifier helper; `GET /media` accepts code, pk, id, or url",
+    "media_search_top_gql": "covered by `GET /search/media` via `media_search`",
     "notification_announcements": "covered by generic `PATCH /notifications/settings` with `content_type=announcements`",
     "notification_comment_likes": "covered by generic `PATCH /notifications/settings` with `content_type=comment_likes`",
     "notification_comments": "covered by generic `PATCH /notifications/settings` with `content_type=comments`",
@@ -124,6 +125,7 @@ COVERED_BY_REST_EXACT_METHODS = {
     "notification_view_count": "covered by generic `PATCH /notifications/settings` with `content_type=view_count`",
     "user_id_from_username": "identifier helper; `GET /user` accepts user_id or username",
     "username_from_user_id": "identifier helper; `GET /user` accepts user_id or username",
+    "user_stories_web": "covered by `GET /user/stories` via `user_stories`",
     "reset_password": "covered by `POST /account/password/reset` via `send_password_reset`",
 }
 INTERNAL_PREFIXES = (

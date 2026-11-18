@@ -1,4 +1,5 @@
 import pytest
+from aiograpi.types import SecondaryAccount, UserShort
 from httpx import ASGITransport, AsyncClient
 
 from aiograpi_rest.dependencies import get_clients
@@ -113,6 +114,13 @@ class FakeClient:
     async def get_account_family_v1(self):
         self.calls.append(("get_account_family_v1",))
         return {"accounts": [{"pk": "1", "username": "account"}], "status": "ok"}
+
+    async def create_secondary_account(self, username, link_to_main_account=True):
+        self.calls.append(("create_secondary_account", username, link_to_main_account))
+        return SecondaryAccount(
+            user=UserShort(pk="9", username=username, full_name=""),
+            settings={"authorization_data": {"ds_user_id": "9"}},
+        )
 
     async def chaining(self, user_id):
         self.calls.append(("chaining", user_id))
@@ -508,6 +516,17 @@ async def test_account_family_returns_linked_account_payload(storage):
     assert response.status_code == 200
     assert response.json()["accounts"][0]["username"] == "account"
     assert ("get_account_family_v1",) in storage.client_instance.calls
+
+
+@pytest.mark.asyncio
+async def test_account_secondary_creates_linked_account(storage):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        response = await ac.post("/account/secondary", data={"sessionid": "sid", "username": "second.acc"})
+
+    assert response.status_code == 200
+    assert response.json()["user"]["username"] == "second.acc"
+    assert response.json()["settings"]["authorization_data"]["ds_user_id"] == "9"
+    assert ("create_secondary_account", "second.acc", True) in storage.client_instance.calls
 
 
 @pytest.mark.asyncio

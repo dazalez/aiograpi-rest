@@ -239,6 +239,7 @@ async def test_openapi_uses_rest_http_methods():
         "/account/follow/requests/approve": {"post"},
         "/account/follow/requests": {"delete", "get"},
         "/account/family": {"get"},
+        "/account/secondary": {"post"},
         "/account/password": {"patch"},
         "/account/password/reset": {"post"},
         "/account/phone/confirm": {"post"},
@@ -695,6 +696,7 @@ async def test_openapi_uses_human_friendly_operation_summaries():
     assert paths["/account/feed/new"]["get"]["summary"] == "Check whether the account has new feed items"
     assert paths["/account/feed/user/stream-item"]["get"]["summary"] == "Get user feed stream item"
     assert paths["/account/family"]["get"]["summary"] == "Get authenticated account family"
+    assert paths["/account/secondary"]["post"]["summary"] == "Create a linked secondary account"
     assert paths["/account/follow/requests"]["get"]["summary"] == "List paginated pending follow requests"
     assert paths["/account/follow/request/approve"]["post"]["summary"] == "Approve a pending follow request"
     assert paths["/account/follow/request"]["delete"]["summary"] == "Decline a pending follow request"

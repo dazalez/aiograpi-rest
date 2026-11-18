@@ -3,7 +3,7 @@ from tempfile import NamedTemporaryFile
 from typing import Any, Dict, List, Optional
 
 from aiograpi.exceptions import CollectionNotFound
-from aiograpi.types import Account, Collection, Media, UserShort
+from aiograpi.types import Account, Collection, Media, SecondaryAccount, UserShort
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 
 from aiograpi_rest.dependencies import ClientStorage, get_clients, get_sessionid
@@ -111,6 +111,22 @@ async def account_family(
     """
     cl = await clients.get(sessionid)
     return await cl.get_account_family_v1()
+
+
+@router.post("/secondary", response_model=SecondaryAccount)
+async def account_secondary_create(
+    sessionid: str = Depends(get_sessionid),
+    username: str = Form(..., description="Username for the new linked account (1-30 letters, digits, `_` or `.`)."),
+    clients: ClientStorage = Depends(get_clients),
+) -> SecondaryAccount:
+    """Create a linked secondary account
+
+    Returns the new account and its separate session settings, which can be
+    loaded with `PATCH /auth/settings`. Do not retry automatically on failure:
+    the account may already have been created.
+    """
+    cl = await clients.get(sessionid)
+    return await cl.create_secondary_account(username)
 
 
 @router.get("/follow/requests", response_model=UserShortPage)

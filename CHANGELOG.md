@@ -1,5 +1,32 @@
 # Changelog
 
+## v7.1.0 - 2026-11-18
+
+### Fixed
+
+- `POST /auth/login` failed with HTTP 500 (`TypeError` in
+  `password_publickeys`) because Instagram retired the
+  `GET /api/v1/qe/sync/` endpoint that `aiograpi<=2.1.2` used to read the
+  password encryption key. `aiograpi>=2.1.3` reads it from `launcher/sync/`.
+
+### Changed
+
+- Upgraded the wrapped client to `aiograpi==2.1.17` (from `2.0.17`).
+- Updated the package version to `7.1.0`.
+
+### Added
+
+- `POST /account/secondary` creates a linked secondary account via
+  `Client.create_secondary_account` and returns the new user plus its separate
+  session settings.
+
+### Verified
+
+- Every `aiograpi.Client` method used by REST routes still exists in `2.1.17`.
+  The new `media_search_top_gql` and `user_stories_web` helpers are documented
+  as variants of the existing `GET /search/media` and `GET /user/stories`
+  routes.
+
 ## v7.0.1 - 2026-10-10
 
 ### Changed

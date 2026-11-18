@@ -142,6 +142,7 @@ OPERATION_SUMMARIES = {
     "getAccountFeedTimeline": "Get authenticated timeline feed",
     "getAccountFeedUserStreamItem": "Get user feed stream item",
     "getAccountFamily": "Get authenticated account family",
+    "postAccountSecondary": "Create a linked secondary account",
     "getAccountSecurity": "Get authenticated account security info",
     "getAccountFollowRequests": "List paginated pending follow requests",
     "postAccountFollowRequestsApprove": "Approve pending follow requests",
