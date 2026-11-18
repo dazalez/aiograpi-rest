@@ -8,6 +8,10 @@
   `password_publickeys`) because Instagram retired the
   `GET /api/v1/qe/sync/` endpoint that `aiograpi<=2.1.2` used to read the
   password encryption key. `aiograpi>=2.1.3` reads it from `launcher/sync/`.
+- The app failed to start with FastAPI `>=0.150` (`TypeError: unexpected
+  keyword argument 'openapi_version'`) because FastAPI no longer accepts extra
+  constructor kwargs. The argument was a no-op: the OpenAPI version is still
+  set to `3.0.3` by the custom `get_openapi` call.
 
 ### Changed
 

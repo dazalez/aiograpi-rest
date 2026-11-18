@@ -42,7 +42,7 @@ class FakeTrackClient:
         return {"items": [{"media": {"pk": 1}}], "max_id": max_id}
 
     async def track_download_by_url(self, url, filename="", folder=""):
-        self.calls.append(("track_download_by_url", url, filename, str(folder)))
+        self.calls.append(("track_download_by_url", url, filename, str(Path(folder))))
         return Path(__file__).resolve()
 
     async def music_in_feed_audio_browser(self, browse_session_id=None):
